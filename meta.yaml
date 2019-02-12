@@ -1,0 +1,38 @@
+# cmd: conda build . -c pacchem -c rdkit -c openbabel
+package:
+    name: automech
+    version: "0.1.2"
+
+source:
+    path: .
+
+requirements:
+    build:
+        - python
+        - more-itertools
+        - numpy
+        - pandas
+        - pyyaml
+        - pytest
+        - pytest-cov
+        - flake8
+        - pylint
+        - pacchem::autoparse
+        - pacchem::autocom
+        - pacchem::automol
+    test:
+        commands:
+            - pytest -v --pyargs automechanic
+    run:
+        - python
+        - more-itertools
+        - numpy
+        - pandas
+        - pyyaml
+        - pytest
+        - pytest-cov
+        - flake8
+        - pylint
+        - pacchem::autoparse
+        - pacchem::autocom
+        - pacchem::automol
