@@ -1,4 +1,4 @@
-""" larger routines ("tasks") employing the automechanic libraries
+""" larger routines employing the automechanic libraries
 """
 from . import chemkin
 from . import species

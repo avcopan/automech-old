@@ -1,0 +1,4 @@
+# cmd: automech species filesystem species_inchi.csv -p
+# exe: /Users/adminavc/Documents/repos/auto/automech/automech
+Reading in species_inchi.csv
+Creating filesystem at 'AMFS'

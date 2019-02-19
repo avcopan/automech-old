@@ -1,7 +1,7 @@
 """ command-line interface for automechanic
 """
 import autocom
-from . import task
+from . import routine
 
 
 def main(sysargv):
@@ -25,7 +25,7 @@ def chemkin(sysargv, calling_pos):
     """ _ """
     autocom.call_subcommand(
         sysargv, calling_pos, subcmd_func_dct={
-            'parse': task.chemkin.parse_cli,
+            'parse': routine.chemkin.parse_cli,
         }
     )
 
@@ -34,8 +34,8 @@ def species(sysargv, calling_pos):
     """ _ """
     autocom.call_subcommand(
         sysargv, calling_pos, subcmd_func_dct={
-            'inchi': task.species.inchi_cli,
-            'filesystem': task.species.filesystem_cli,
+            'inchi': routine.species.inchi_cli,
+            'filesystem': routine.species.filesystem_cli,
         }
     )
 
@@ -44,6 +44,6 @@ def reactions(sysargv, calling_pos):
     """ _ """
     autocom.call_subcommand(
         sysargv, calling_pos, subcmd_func_dct={
-            'classify': task.reactions.classify_cli,
+            'classify': routine.reactions.classify_cli,
         }
     )

@@ -1,4 +1,4 @@
-""" tasks operation on reactions
+""" reactions routines
 """
 # from ..parse.chemkin import split_reaction_name
 from .species import grouped_identifier_lists as _grouped_identifier_lists

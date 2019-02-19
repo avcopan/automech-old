@@ -1,5 +1,8 @@
-""" tasks operating on species
+""" species routines
 """
+import os
+import subprocess
+from itertools import chain as _chain
 import autocom
 import automol as mol
 from .. import params as par
@@ -57,7 +60,15 @@ def filesystem_cli(sysargv, calling_pos):
             autocom.arg.optional(
                 'fle_sys', par.FILESYS.NAME, par.FILESYS.CHAR.upper(),
                 default=par.FILESYS.LOCAL_DEFAULT, tag=par.OUT_TAG,
-            )
+            ),
+            autocom.arg.optional(
+                'script', 'script_name', 'x',
+                msgs=['A script to run in each directory'],
+            ),
+            autocom.arg.optional_list(
+                'select', 'selection', 'i',
+                msgs=['Index ranges selecting rows from the CSV file.'],
+            ),
         ]
     )
     filesystem(*arg_vals)
@@ -75,12 +86,14 @@ def inchi(conn_id_key, spc_csv, spc_csv_out, stereo_mode, logger):
     _write_csv(spc_csv_out, tbl, logger)
 
 
-def filesystem(spc_csv, spc_csv_out, filesystem_prefix, logger):
+def filesystem(spc_csv, spc_csv_out, filesystem_prefix, script_name, selection,
+               logger):
     """ chart the species filesystem structure
     """
-
     tbl = _read_csv(spc_csv, logger)
-    tbl = _create_filesystem(tbl, fs_root_pth=filesystem_prefix, logger=logger)
+    tbl = _create_filesystem(tbl, fs_root_pth=filesystem_prefix,
+                             script_name=script_name, selection=selection,
+                             logger=logger)
     _write_csv(spc_csv_out, tbl, logger)
 
 
@@ -149,8 +162,15 @@ def _assign_stereo_by_expanding(tbl):
     return tbl
 
 
-def _create_filesystem(tbl, fs_root_pth, logger):
+def _create_filesystem(tbl, fs_root_pth, script_name, selection, logger):
     logger.info("Creating filesystem at '{:s}'".format(fs_root_pth))
+
+    script_path = (os.path.abspath(script_name) if script_name is not None else
+                   None)
+
+    row_idxs = tbl.index.values
+    if selection is not None:
+        row_idxs = list(_interpret_range_strings(selection))
 
     id_keys = (par.SPC.TAB.ICH_KEY, par.SPC.TAB.MULT_KEY)
     id_typs = (par.SPC.TAB.ICH_TYP, par.SPC.TAB.MULT_TYP)
@@ -158,15 +178,36 @@ def _create_filesystem(tbl, fs_root_pth, logger):
 
     def __create_branch(ich, mult):
         sgms = fslib.species.branch_segments(ich, mult)
-        return fs.branch.create(sgms)
+        path = fs.branch.create(sgms)
+        if script_path is not None:
+            argv = list(map(str, [script_path, ich, mult]))
+            logger.info("Running `{:s}` in {:s}".format(' '.join(argv), path))
+            subprocess.check_call(argv, cwd=path)
+        return path
 
-    with fs.enter(fs_root_pth):
-        pth_tbl = tab.from_starmap(tbl, __create_branch, id_keys,
-                                   keys=(par.SPC.TAB.FILESYSTEM_PATH_KEY,),
-                                   typs=(par.SPC.TAB.FILESYSTEM_PATH_TYP,))
-        tbl = tab.left_join(tbl, pth_tbl)
+    pth_tbl = tab.from_starmap(tbl[tbl.index.isin(row_idxs)],
+                               __create_branch, id_keys,
+                               keys=(par.SPC.TAB.FILESYSTEM_PATH_KEY,),
+                               typs=(par.SPC.TAB.FILESYSTEM_PATH_TYP,))
+    tbl = tab.left_join(tbl, pth_tbl)
 
     return tbl
+
+
+def _interpret_range_strings(rng_strs):
+
+    def _interpret_range_string(rng_str):
+        split_rng = str(rng_str).split('-')
+        if len(split_rng) == 1:
+            rng = [int(split_rng[-1])]
+        elif len(split_rng) == 2:
+            start, stop = map(int, split_rng)
+            rng = list(range(start, stop+1))
+        else:
+            raise ValueError("Failed to interet index ranges")
+        return rng
+
+    return tuple(_chain(*map(_interpret_range_string, rng_strs)))
 
 
 # used elswhere -- decide if this is the best place
